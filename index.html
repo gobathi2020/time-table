@@ -3,186 +3,201 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Timetable Generator Pro</title>
+    <title>TimetablePro | Advanced Scheduling</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <style>
-        body { font-family: 'Inter', sans-serif; }
+        body { font-family: 'Montserrat', sans-serif; }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
     </style>
 </head>
-<body class="bg-slate-50 font-sans text-slate-800 min-h-screen">
-    <div class="max-w-4xl mx-auto p-6 md:p-12">
-        <header class="mb-10 text-center">
-            <h1 class="text-4xl font-extrabold text-slate-900 tracking-tight">Timetable<span class="text-indigo-600">Pro</span></h1>
-            <p class="text-slate-500 mt-2">Stateless zero-config scheduling</p>
+<body class="bg-slate-50 text-slate-800 min-h-screen pb-12">
+    <div class="max-w-5xl mx-auto p-6 md:p-10">
+        <header class="flex flex-col md:flex-row justify-between items-center mb-10 text-center md:text-left gap-6">
+            <div>
+                <h1 class="text-4xl font-black text-slate-900 tracking-tighter uppercase">Timetable<span class="text-indigo-600 tracking-normal capitalize italic font-extrabold ml-1">Pro</span></h1>
+                <p class="text-slate-500 mt-1 text-sm font-medium">Stateless. Premium. Precise.</p>
+            </div>
+            <div class="flex space-x-3">
+                <button onclick="saveTemplate()" class="flex items-center px-4 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-50 transition shadow-sm">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+                    Save Template
+                </button>
+                <button onclick="loadTemplate()" class="flex items-center px-4 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-50 transition shadow-sm">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                    Load Latest
+                </button>
+            </div>
         </header>
 
         <!-- Stepper -->
-        <div class="flex justify-center mb-8">
-            <div class="flex items-center space-x-4 text-sm font-medium">
-                <div class="step-indicator active text-indigo-600" id="indicator-1">1. Setup</div>
-                <div class="text-slate-300">/</div>
-                <div class="step-indicator text-slate-400" id="indicator-2">2. Schedule</div>
-                <div class="text-slate-300">/</div>
-                <div class="step-indicator text-slate-400" id="indicator-3">3. Classes</div>
-                <div class="text-slate-300">/</div>
-                <div class="step-indicator text-slate-400" id="indicator-4">4. Staff</div>
-                <div class="text-slate-300">/</div>
-                <div class="step-indicator text-slate-400" id="indicator-5">5. Generate</div>
+        <div class="mb-12 overflow-x-auto scrollbar-hide">
+            <div class="flex items-center space-x-6 text-[10px] font-black uppercase tracking-widest min-w-max px-2">
+                <div class="step-indicator active text-indigo-600 flex items-center" id="indicator-1"><span class="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center mr-2">1</span> Setup</div>
+                <div class="text-slate-200 text-lg">/</div>
+                <div class="step-indicator text-slate-300 flex items-center" id="indicator-2"><span class="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center mr-2">2</span> Schedule</div>
+                <div class="text-slate-200 text-lg">/</div>
+                <div class="step-indicator text-slate-300 flex items-center" id="indicator-3"><span class="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center mr-2">3</span> Subjects</div>
+                <div class="text-slate-200 text-lg">/</div>
+                <div class="step-indicator text-slate-300 flex items-center" id="indicator-4"><span class="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center mr-2">4</span> Staff</div>
+                <div class="text-slate-200 text-lg">/</div>
+                <div class="step-indicator text-slate-300 flex items-center" id="indicator-5"><span class="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center mr-2">5</span> Finish</div>
             </div>
         </div>
 
-        <div class="bg-white rounded-2xl shadow-xl shadow-slate-200/50 p-8 border border-slate-100 min-h-[400px] relative overflow-hidden" id="card-container">
-            <!-- Step 1: Configuration -->
+        <div class="bg-white rounded-3xl shadow-2xl shadow-indigo-100/50 p-8 md:p-10 border border-slate-100 min-h-[500px] relative transition-all duration-500" id="card-container">
+            <!-- Step 1: Setup -->
             <div id="step-1" class="step-content animate-fade-in">
-                <h2 class="text-2xl font-bold mb-6">Institution Details</h2>
-                <div class="space-y-4">
-                    <label class="block">
-                        <span class="text-sm font-medium text-slate-700">Institution Name</span>
-                        <input type="text" id="institution-name" class="mt-2 block w-full rounded-lg border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition shadow-sm" placeholder="e.g. Springfield High">
-                    </label>
+                <div class="max-w-xl">
+                    <h2 class="text-3xl font-black mb-2 text-slate-900 italic">Welcome.</h2>
+                    <p class="text-slate-500 mb-8 font-medium">Let's start with your institution's name.</p>
+                    <div class="space-y-6">
+                        <label class="block">
+                            <span class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Institution Name</span>
+                            <input type="text" id="institution-name" class="mt-2 block w-full rounded-2xl border-2 border-slate-100 px-6 py-4 focus:outline-none focus:border-indigo-500 transition-all font-semibold text-lg" placeholder="e.g. Royal Academy of Sciences">
+                        </label>
+                    </div>
                 </div>
-                <div class="mt-10 flex justify-end">
-                    <button onclick="nextStep(2)" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-medium transition shadow-lg shadow-indigo-200">Next: Schedule &rarr;</button>
+                <div class="mt-16 flex justify-end">
+                    <button onclick="nextStep(2)" class="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition shadow-xl shadow-indigo-200 flex items-center">
+                        Begin Config
+                        <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                    </button>
                 </div>
             </div>
 
-            <!-- Step 2: Schedule Setup -->
+            <!-- Step 2: Schedule Config -->
             <div id="step-2" class="step-content hidden animate-fade-in">
-                <h2 class="text-2xl font-bold mb-2">Schedule Configuration</h2>
-                <p class="text-sm text-slate-500 mb-6">Configure working days, period counts, and timings.</p>
-                
-                <div class="space-y-6">
-                    <div class="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
-                        <div>
-                            <span class="block font-medium text-slate-700">Include Saturday?</span>
-                            <span class="text-xs text-slate-500">Enable 6-day working week</span>
+                <h2 class="text-2xl font-black mb-8 text-slate-900">Schedule Logic</h2>
+                <div class="grid md:grid-cols-2 gap-8">
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                            <div>
+                                <span class="block font-bold text-slate-800">Saturday?</span>
+                                <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">6-day working week</span>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="include-saturday" class="sr-only peer">
+                                <div class="w-12 h-6 bg-slate-200 rounded-full peer peer-checked:bg-indigo-600 transition-all after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-6"></div>
+                            </label>
                         </div>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" id="include-saturday" class="sr-only peer">
-                            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                        </label>
-                    </div>
-
-                    <div class="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
-                        <div>
-                            <span class="block font-medium text-slate-700">Allow Free Periods?</span>
-                            <span class="text-xs text-slate-500">If disabled, the scheduler will fill all empty slots</span>
+                        <div class="flex items-center justify-between p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                            <div>
+                                <span class="block font-bold text-slate-800">Auto-Fill gaps?</span>
+                                <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Fill free periods automatically</span>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="allow-free-periods" class="sr-only peer">
+                                <div class="w-12 h-6 bg-slate-200 rounded-full peer peer-checked:bg-emerald-500 transition-all after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-6"></div>
+                            </label>
                         </div>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" id="allow-free-periods" class="sr-only peer" checked>
-                            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                        </label>
+                        <div>
+                            <label class="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Daily Periods</label>
+                            <select id="period-count" onchange="renderTimingRows(this.value)" class="block w-full rounded-2xl border-2 border-slate-50 bg-white px-5 py-4 focus:outline-none focus:border-indigo-500 transition-all font-bold">
+                                <option value="5">5 Periods</option>
+                                <option value="6">6 Periods</option>
+                                <option value="7">7 Periods</option>
+                                <option value="8" selected>8 Periods</option>
+                                <option value="9">9 Periods</option>
+                                <option value="10">10 Periods</option>
+                            </select>
+                        </div>
                     </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-2">Periods per Day</label>
-                        <select id="period-count" onchange="renderTimingRows(this.value)" class="block w-full rounded-lg border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition shadow-sm">
-                            <option value="5">5 Periods</option>
-                            <option value="6">6 Periods</option>
-                            <option value="7">7 Periods</option>
-                            <option value="8" selected>8 Periods</option>
-                            <option value="9">9 Periods</option>
-                            <option value="10">10 Periods</option>
-                        </select>
-                    </div>
-
-                    <div id="timing-matrix" class="space-y-3 mt-6">
-                        <!-- Timing rows injected here -->
+                    <div id="timing-matrix" class="space-y-3 max-h-[350px] overflow-y-auto pr-2 scrollbar-hide">
+                        <!-- Timing rows -->
                     </div>
                 </div>
-
-                <div class="mt-10 flex justify-between">
-                    <button onclick="nextStep(1)" class="text-slate-500 hover:text-slate-800 px-4 py-3 font-medium transition">&larr; Back</button>
-                    <button onclick="nextStep(3)" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-medium transition shadow-lg shadow-indigo-200">Next: Classes &rarr;</button>
+                <div class="mt-12 flex justify-between">
+                    <button onclick="nextStep(1)" class="text-slate-400 hover:text-slate-800 px-4 py-3 font-bold text-xs uppercase tracking-widest transition">Back</button>
+                    <button onclick="nextStep(3)" class="bg-slate-900 hover:bg-black text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition">Next Step</button>
                 </div>
             </div>
 
-            <!-- Step 3: Classes -->
+            <!-- Step 3: Classes & Subjects -->
             <div id="step-3" class="step-content hidden animate-fade-in">
-                <h2 class="text-2xl font-bold mb-2">Define Classes</h2>
-                <p class="text-sm text-slate-500 mb-6">Type a class name and press Enter to add it to the list.</p>
-                <div class="space-y-4">
-                    <div class="relative">
-                        <input type="text" id="class-input" class="block w-full rounded-lg border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition shadow-sm" placeholder="e.g. 10A, 11B Science">
+                <div class="flex justify-between items-end mb-8">
+                    <div>
+                        <h2 class="text-2xl font-black text-slate-900">Curriculum</h2>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Define classes and their weekly subject counts</p>
                     </div>
-                    <div id="class-tags" class="flex flex-wrap gap-2 mt-4 min-h-[50px] p-4 bg-slate-50 rounded-lg border border-slate-200">
-                        <!-- Tags will be dynamically injected here -->
-                    </div>
+                    <button onclick="addClassForm()" class="px-5 py-3 bg-indigo-50 text-indigo-700 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-indigo-100 transition flex items-center">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"></path></svg>
+                        Add Class
+                    </button>
                 </div>
+                
+                <div id="classes-container" class="space-y-6 max-h-[450px] overflow-y-auto pr-2 pb-6 scrollbar-hide">
+                    <!-- Class cards -->
+                </div>
+
                 <div class="mt-10 flex justify-between">
-                    <button onclick="nextStep(2)" class="text-slate-500 hover:text-slate-800 px-4 py-3 font-medium transition">&larr; Back</button>
-                    <button onclick="nextStep(4)" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-medium transition shadow-lg shadow-indigo-200">Next: Staff &rarr;</button>
+                    <button onclick="nextStep(2)" class="text-slate-400 hover:text-slate-800 px-4 py-3 font-bold text-xs uppercase tracking-widest transition">Back</button>
+                    <button onclick="nextStep(4)" class="bg-indigo-600 text-white px-10 py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition shadow-xl shadow-indigo-100">Next: Assign Staff</button>
                 </div>
             </div>
 
-            <!-- Step 4: Staff -->
+            <!-- Step 4: Staff & Constraints -->
             <div id="step-4" class="step-content hidden animate-fade-in">
-                <h2 class="text-2xl font-bold mb-2">Manage Staff & Subjects</h2>
-                <p class="text-sm text-slate-500 mb-6">Add teachers, their subject, and the classes they cover.</p>
-                
-                <div id="slot-counters-container" class="mb-8 p-4 bg-indigo-50 rounded-xl border border-indigo-100 hidden">
-                    <h3 class="text-xs font-bold text-indigo-900 uppercase tracking-widest mb-3">Class Slot Utilization</h3>
-                    <div id="slot-counters-list" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                        <!-- Counters injected here -->
+                <div class="flex justify-between items-end mb-8">
+                    <div>
+                        <h2 class="text-2xl font-black text-slate-900">Faculty</h2>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Assign teachers to subjects and set availability</p>
                     </div>
+                    <button onclick="addStaffForm()" class="px-5 py-3 bg-indigo-50 text-indigo-700 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-indigo-100 transition flex items-center">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"></path></svg>
+                        Add Staff
+                    </button>
                 </div>
-                
-                <div id="staff-container" class="space-y-4 mb-6 max-h-[400px] overflow-y-auto pr-2 pb-4">
-                    <!-- Staff cards injected here -->
+
+                <div id="staff-container" class="space-y-6 max-h-[450px] overflow-y-auto pr-2 pb-6 scrollbar-hide">
+                    <!-- Staff cards -->
                 </div>
-                
-                <button onclick="addStaffForm()" class="w-full flex items-center justify-center py-4 border-2 border-dashed border-slate-300 rounded-xl text-slate-500 hover:text-indigo-600 hover:border-indigo-400 hover:bg-indigo-50 transition font-medium">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
-                    Add Teacher
-                </button>
 
                 <div class="mt-10 flex justify-between">
-                    <button onclick="nextStep(3)" class="text-slate-500 hover:text-slate-800 px-4 py-3 font-medium transition">&larr; Back</button>
-                    <button onclick="nextStep(5)" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-medium transition shadow-lg shadow-indigo-200">Prepare Generation &rarr;</button>
+                    <button onclick="nextStep(3)" class="text-slate-400 hover:text-slate-800 px-4 py-3 font-bold text-xs uppercase tracking-widest transition">Back</button>
+                    <button onclick="nextStep(5)" class="bg-indigo-600 text-white px-10 py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition shadow-xl shadow-indigo-100">Prepare Output</button>
                 </div>
             </div>
 
             <!-- Step 5: Results -->
-            <div id="step-5" class="step-content hidden animate-fade-in">
-                <div class="text-center mb-10">
-                    <h2 class="text-3xl font-bold mb-4">Ready to Generate!</h2>
-                    <p class="text-slate-500 max-w-md mx-auto">Your configuration is ready. Our completely stateless system will generate PDF schedules instantly.</p>
-                </div>
-
-                <div class="grid md:grid-cols-2 gap-6 max-w-2xl mx-auto">
-                    <button onclick="generatePDF('classes')" class="group relative bg-gradient-to-br from-indigo-500 to-purple-600 text-white p-8 rounded-2xl hover:shadow-xl hover:shadow-indigo-300/50 transition-all overflow-hidden flex flex-col items-center justify-center">
-                        <div class="absolute right-0 top-0 w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500"></div>
-                        <svg class="w-12 h-12 mb-4 text-white/90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
-                        <span class="text-lg font-semibold block">Download Class PDFs</span>
-                        <span class="text-sm text-white/70 mt-1 block">One page per class grid</span>
-                    </button>
-
-                    <button onclick="generatePDF('staff')" class="group relative bg-gradient-to-br from-emerald-500 to-teal-600 text-white p-8 rounded-2xl hover:shadow-xl hover:shadow-emerald-300/50 transition-all overflow-hidden flex flex-col items-center justify-center">
-                        <div class="absolute left-0 bottom-0 w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500"></div>
-                        <svg class="w-12 h-12 mb-4 text-white/90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                        <span class="text-lg font-semibold block">Download Staff PDFs</span>
-                        <span class="text-sm text-white/70 mt-1 block">One page per teacher grid</span>
-                    </button>
+            <div id="step-5" class="step-content hidden animate-fade-in text-center">
+                <div class="py-12">
+                    <div class="w-24 h-24 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-8">
+                        <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <h2 class="text-4xl font-black text-slate-900 mb-4 tracking-tight">Generation Ready.</h2>
+                    <p class="text-slate-400 font-medium max-w-sm mx-auto mb-12 italic">Your perfect schedules have been computed and are ready for professional PDF export.</p>
+                    
+                    <div class="flex flex-col sm:flex-row justify-center gap-6">
+                        <button onclick="generatePDF('classes')" class="group px-10 py-6 bg-slate-900 text-white rounded-3xl hover:bg-black transition-all shadow-2xl hover:scale-105">
+                            <span class="block text-xs font-black uppercase tracking-widest text-indigo-400 mb-1">Class-wise</span>
+                            <span class="text-lg font-extrabold italic">Export PDFs</span>
+                        </button>
+                        <button onclick="generatePDF('staff')" class="group px-10 py-6 bg-white border-2 border-slate-900 text-slate-900 rounded-3xl hover:bg-slate-50 transition-all shadow-xl hover:scale-105">
+                            <span class="block text-xs font-black uppercase tracking-widest text-slate-400 mb-1">Staff-wise</span>
+                            <span class="text-lg font-extrabold italic">Export PDFs</span>
+                        </button>
+                    </div>
                 </div>
 
                 <div class="mt-12 flex justify-start">
-                    <button onclick="nextStep(4)" class="text-slate-500 hover:text-slate-800 px-4 py-3 font-medium transition">&larr; Edit Details</button>
+                    <button onclick="nextStep(4)" class="text-slate-400 hover:text-slate-800 px-4 py-3 font-bold text-xs uppercase tracking-widest transition">&larr; Edit Data</button>
                 </div>
             </div>
-            
         </div>
     </div>
     
     <!-- Loader overlay -->
-    <div id="loader" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden">
-        <div class="bg-white p-8 rounded-2xl shadow-2xl flex flex-col items-center">
-            <svg class="animate-spin h-10 w-10 text-indigo-600 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            <p class="text-lg font-semibold text-slate-800">Generating Timetables...</p>
+    <div id="loader" class="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center hidden">
+        <div class="bg-white p-10 rounded-3xl shadow-2xl flex flex-col items-center">
+            <div class="relative w-16 h-16 mb-6">
+                <div class="absolute inset-0 border-4 border-indigo-100 rounded-full"></div>
+                <div class="absolute inset-0 border-4 border-indigo-600 rounded-full border-t-transparent animate-spin"></div>
+            </div>
+            <p class="text-sm font-black uppercase tracking-widest text-slate-800 italic">Computing Grids...</p>
         </div>
     </div>
 

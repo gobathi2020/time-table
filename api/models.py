@@ -12,15 +12,26 @@ class ScheduleConfig(BaseModel):
     periods: List[PeriodConfig]
     allow_free_periods: bool = True
 
+class SubjectConfig(BaseModel):
+    name: str
+    periods_per_week: int
+
+class ClassInput(BaseModel):
+    name: str
+    subjects: List[SubjectConfig]
+
+class StaffAssignment(BaseModel):
+    class_name: str
+    subject_name: str
+
 class StaffInput(BaseModel):
     name: str
-    subject: str
-    classes: List[str]
+    assignments: List[StaffAssignment]
     class_teacher_for: Optional[str] = None
-    periods_per_day: int = 1
+    available_until_period: Optional[int] = None # e.g. 6 means not available after period 6
 
 class ScheduleRequest(BaseModel):
     institution_name: str
     config: ScheduleConfig
-    classes: List[str]
+    classes: List[ClassInput]
     staff: List[StaffInput]
