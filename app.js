@@ -83,9 +83,14 @@ function addClassForm(data = null) {
     card.className = "class-card bg-slate-50 p-6 rounded-3xl border border-slate-200 relative group animate-fade-in";
     card.dataset.id = id;
     card.innerHTML = `
-        <button onclick="this.parentElement.remove()" class="absolute top-4 right-4 text-slate-300 hover:text-red-500 transition opacity-0 group-hover:opacity-100">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-        </button>
+        <div class="absolute top-4 right-4 flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button onclick="duplicateClass(${id})" class="text-slate-300 hover:text-indigo-500" title="Duplicate Class">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"></path></svg>
+            </button>
+            <button onclick="this.closest('.class-card').remove()" class="text-slate-300 hover:text-red-500" title="Remove Class">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+            </button>
+        </div>
         <div class="mb-4">
             <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Class Name</label>
             <input type="text" class="class-name w-full rounded-xl border-2 border-white px-4 py-3 text-sm font-bold focus:border-indigo-500 transition-all shadow-sm" placeholder="e.g. 10th A" value="${data ? data.name : ''}">
@@ -117,6 +122,18 @@ function addSubjectRow(target, data = null) {
         <button onclick="this.parentElement.remove()" class="text-slate-300 hover:text-red-400 transition">&times;</button>
     `;
     list.appendChild(row);
+}
+
+function duplicateClass(id) {
+    const card = document.querySelector(`.class-card[data-id="${id}"]`);
+    const name = card.querySelector('.class-name').value;
+    const subjects = [];
+    card.querySelectorAll('.subjects-list > div').forEach(row => {
+        const subName = row.querySelector('.sub-name').value.trim();
+        const subFreq = parseInt(row.querySelector('.sub-freq').value) || 1;
+        if (subName) subjects.push({ name: subName, periods_per_week: subFreq });
+    });
+    addClassForm({ name: name + " (Copy)", subjects });
 }
 
 function collectClassesData() {
