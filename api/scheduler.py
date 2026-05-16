@@ -6,81 +6,75 @@ def generate_schedule(req):
     
     class_schedule = {c: [[None for _ in range(periods)] for _ in range(days)] for c in req.classes}
     
-    # Pre-calculate assignments for each class
-    # Format: { class_name: [ {staff_name, subject, remaining_periods}, ... ] }
-    assignments_by_class = {c: [] for c in req.classes}
-    for staff in req.staff:
-        for c in staff.classes:
-            if c in req.classes:
-                assignments_by_class[c].append({
-                    "teacher": staff.name,
-                    "subject": staff.subject,
-                    "remaining": staff.periods_per_week
-                })
-
-    # Multi-pass balanced distribution
-    # Max slots possible per week = days * periods
-    max_total_periods = days * periods
-    
-    # We continue as long as there are remaining periods to assign and space in the grid
-    any_remaining = True
-    while any_remaining:
-        any_remaining = False
-        # Shuffle classes to avoid bias
+    # 1. Primary Assignment: Periods per Day
+    for day in range(days):
+        # Shuffle classes for fairness
         class_list = list(req.classes)
         random.shuffle(class_list)
         
         for c in class_list:
-            # For each class, try to assign ONE period of each subject if possible
-            # Shuffle subjects within class
-            subjects = assignments_by_class[c]
-            random.shuffle(subjects)
+            # Collect subjects assigned to this class
+            class_staff = [s for s in req.staff if c in s.classes]
+            random.shuffle(class_staff)
             
-            for sub in subjects:
-                if sub["remaining"] <= 0:
-                    continue
+            # For each staff member, they need 'periods_per_day' slots today
+            for staff in class_staff:
+                remaining_for_today = staff.periods_per_day
                 
-                any_remaining = True
+                # Find available slots in this day for this class
+                available_p_indices = [i for i, p in enumerate(req.config.periods) if not p.is_break and class_schedule[c][day][i] is None]
+                random.shuffle(available_p_indices)
                 
-                # Pick a random day, but try to find a day where this subject isn't already placed in this PASS
-                # (Simple strategy: find available slots in class and teacher across all days)
-                placed = False
-                
-                # We want to spread across days. Let's try to find a day where this class/teacher pair doesn't have 
-                # too many periods already.
-                day_indices = list(range(days))
-                random.shuffle(day_indices)
-                
-                for day in day_indices:
-                    # Is class/teacher already busy this day? (Optional SOFT constraint for spreading)
-                    # For now, let's just find any free period in this day.
-                    
-                    period_indices = list(range(periods))
-                    random.shuffle(period_indices)
-                    
-                    for p_idx in period_indices:
-                        if req.config.periods[p_idx].is_break:
-                            continue
-                            
-                        # Is class free?
-                        if class_schedule[c][day][p_idx] is None:
-                            # Is teacher free?
-                            teacher_busy = False
-                            for other_c in req.classes:
-                                slot = class_schedule[other_c][day][p_idx]
-                                if slot and slot["teacher"] == sub["teacher"]:
-                                    teacher_busy = True
-                                    break
-                            
-                            if not teacher_busy:
-                                class_schedule[c][day][p_idx] = {
-                                    "subject": sub["subject"],
-                                    "teacher": sub["teacher"]
-                                }
-                                sub["remaining"] -= 1
-                                placed = True
-                                break
-                    if placed:
+                for p_idx in available_p_indices:
+                    if remaining_for_today <= 0:
                         break
                         
+                    # Is teacher free?
+                    teacher_busy = False
+                    for other_c in req.classes:
+                        slot = class_schedule[other_c][day][p_idx]
+                        if slot and slot["teacher"] == staff.name:
+                            teacher_busy = True
+                            break
+                    
+                    if not teacher_busy:
+                        class_schedule[c][day][p_idx] = {
+                            "subject": staff.subject,
+                            "teacher": staff.name
+                        }
+                        remaining_for_today -= 1
+
+    # 2. Fill Free Periods (if requested)
+    if not req.config.allow_free_periods:
+        for day in range(days):
+            class_list = list(req.classes)
+            random.shuffle(class_list)
+            
+            for c in class_list:
+                # Find empty slots
+                for p_idx, p_conf in enumerate(req.config.periods):
+                    if p_conf.is_break or class_schedule[c][day][p_idx] is not None:
+                        continue
+                    
+                    # This is a free period we need to fill
+                    # Pick a teacher assigned to this class who is free
+                    class_staff = [s for s in req.staff if c in s.classes]
+                    random.shuffle(class_staff)
+                    
+                    for staff in class_staff:
+                        # Is teacher free?
+                        teacher_busy = False
+                        for other_c in req.classes:
+                            slot = class_schedule[other_c][day][p_idx]
+                            if slot and slot["teacher"] == staff.name:
+                                teacher_busy = True
+                                break
+                        
+                        if not teacher_busy:
+                            class_schedule[c][day][p_idx] = {
+                                "subject": staff.subject,
+                                "teacher": staff.name
+                            }
+                            break # Found a filler for this slot
+                            
     return class_schedule

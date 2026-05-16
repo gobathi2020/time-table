@@ -10,16 +10,17 @@ class PeriodConfig(BaseModel):
 class ScheduleConfig(BaseModel):
     include_saturday: bool
     periods: List[PeriodConfig]
+    allow_free_periods: bool = True
 
 class StaffInput(BaseModel):
     name: str
     subject: str
     classes: List[str]
     class_teacher_for: Optional[str] = None
-    periods_per_week: int = 1
+    periods_per_day: int = 1
 
 class ScheduleRequest(BaseModel):
     institution_name: str
-    config: ScheduleConfig = None # Fallback handling for safety? Better to require it
+    config: ScheduleConfig
     classes: List[str]
     staff: List[StaffInput]

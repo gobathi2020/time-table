@@ -2,7 +2,8 @@ const state = {
     institution_name: "",
     config: {
         include_saturday: false,
-        periods: []
+        periods: [],
+        allow_free_periods: true
     },
     classes: [],
     staff: [] // Array of { name, subject, classes: [] }
@@ -88,6 +89,7 @@ function renderTimingRows(count) {
 
 function collectScheduleConfig() {
     state.config.include_saturday = document.getElementById('include-saturday').checked;
+    state.config.allow_free_periods = document.getElementById('allow-free-periods').checked;
     state.config.periods = [];
     
     document.querySelectorAll('#timing-matrix > div').forEach(row => {
@@ -195,8 +197,8 @@ function addStaffForm() {
                 </select>
             </div>
             <div class="mb-4">
-                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Periods per Week</label>
-                <input type="number" class="periods-per-week w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" value="1" min="1" oninput="updateSlotCounters()">
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Periods per Day</label>
+                <input type="number" class="periods-per-day w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" value="1" min="1" oninput="updateSlotCounters()">
             </div>
         </div>
 
@@ -256,10 +258,11 @@ function updateSlotCounters() {
     state.classes.forEach(c => classFrequencies[c] = 0);
     
     document.querySelectorAll('.staff-card').forEach(card => {
-        const freq = parseInt(card.querySelector('.periods-per_week')?.value || card.querySelector('.periods-per-week')?.value || 1);
+        const freqPerDay = parseInt(card.querySelector('.periods-per-day')?.value || 1);
+        const freqPerWeek = freqPerDay * days;
         const selectedClasses = Array.from(card.querySelectorAll('.staff-class-checkbox:checked')).map(cb => cb.value);
         selectedClasses.forEach(c => {
-            if (classFrequencies[c] !== undefined) classFrequencies[c] += freq;
+            if (classFrequencies[c] !== undefined) classFrequencies[c] += freqPerWeek;
         });
     });
     
@@ -318,7 +321,7 @@ function collectStaffData() {
         const subject = card.querySelector('.staff-subject').value.trim();
         const classes = Array.from(card.querySelectorAll('.staff-class-checkbox:checked')).map(cb => cb.value);
         const classTeacherFor = card.querySelector('.class-teacher-dropdown').value || null;
-        const periodsPerWeek = parseInt(card.querySelector('.periods-per-week').value) || 1;
+        const periodsPerDay = parseInt(card.querySelector('.periods-per-day').value) || 1;
         
         if (name && subject) {
             state.staff.push({ 
@@ -326,7 +329,7 @@ function collectStaffData() {
                 subject, 
                 classes, 
                 class_teacher_for: classTeacherFor,
-                periods_per_week: periodsPerWeek
+                periods_per_day: periodsPerDay
             });
         }
     });
