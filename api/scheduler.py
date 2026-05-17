@@ -72,6 +72,15 @@ def generate_schedule(req):
             day_indices = list(range(days))
             random.shuffle(day_indices)
             
+            # Prioritize days with the FEWEST occurrences of this subject to ensure even daily spread
+            def subject_count(d):
+                count = 0
+                for c_name in task["class_names"]:
+                    count += sum(1 for p in class_schedule[c_name][d] if p and p["subject"] == task["subject_name"])
+                return count
+                
+            day_indices.sort(key=subject_count)
+            
             placed = False
             for day in day_indices:
                 # Check teacher days off
