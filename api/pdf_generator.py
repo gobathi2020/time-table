@@ -58,11 +58,16 @@ def create_table(pdf, title, subtitle, days_count, periods_config, schedule_grid
     
     # Period columns
     for p_conf in periods_config:
-        time_text = f"{p_conf.label}\n{format_12h(p_conf.start_time)}-{format_12h(p_conf.end_time)}"
-        # Use multi_cell for periods to allow line breaks
+        # 3 lines: Label, Start Time, End Time
+        time_text = f"{p_conf.label}\n{format_12h(p_conf.start_time)}\n{format_12h(p_conf.end_time)}"
         x = pdf.get_x()
         y = pdf.get_y()
-        pdf.multi_cell(col_width, row_height/2, time_text, border=1, align="C", fill=True, max_line_height=row_height/2)
+        pdf.set_font("Times", "B", 8)
+        # Draw the cell explicitly to fix the border size to row_height
+        pdf.rect(x, y, col_width, row_height, style="FD")
+        # Vertically center the text approximately by adding a small top margin
+        pdf.set_xy(x, y + (row_height - (3 * 4)) / 2) # approx 4pt per line
+        pdf.multi_cell(col_width, 4, time_text, border=0, align="C", fill=False)
         pdf.set_xy(x + col_width, y)
     
     pdf.ln(row_height)
@@ -84,12 +89,20 @@ def create_table(pdf, title, subtitle, days_count, periods_config, schedule_grid
             if p_conf.is_break:
                 pdf.set_fill_color(241, 245, 249)
                 pdf.set_font("Times", "I", 9)
-                pdf.multi_cell(col_width, row_height, "BREAK", border=1, align="C", fill=True, max_line_height=row_height)
+                pdf.rect(x, y, col_width, row_height, style="FD")
+                pdf.set_xy(x, y + (row_height - 5) / 2)
+                pdf.multi_cell(col_width, 5, "BREAK", border=0, align="C", fill=False)
                 pdf.set_xy(x + col_width, y)
             else:
-                pdf.set_font("Times", "", 9)
+                pdf.set_fill_color(255, 255, 255)
+                pdf.set_font("Times", "", 8)
                 content = schedule_grid[d][p]
-                pdf.multi_cell(col_width, row_height/2, content if content else "", border=1, align="C", max_line_height=row_height/2)
+                pdf.rect(x, y, col_width, row_height, style="D")
+                if content:
+                    # Content is 2 lines (Subject, Teacher)
+                    # If subject wraps, it might be 3. Let's use small line height
+                    pdf.set_xy(x, y + (row_height - 8) / 2) # Assume approx 8pt height for 2 lines
+                    pdf.multi_cell(col_width, 4, content, border=0, align="C", fill=False)
                 pdf.set_xy(x + col_width, y)
                 
         pdf.ln(row_height)
