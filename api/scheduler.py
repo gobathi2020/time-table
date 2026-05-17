@@ -7,29 +7,59 @@ def generate_schedule(req):
     class_names = [c.name for c in req.classes]
     class_schedule = {c: [[None for _ in range(num_periods)] for _ in range(days)] for c in class_names}
     
-    # 1. Create a task list for each class/subject
-    # [{class_name, subject_name, teacher_name, remaining}]
+    # 1. Create a task list for each assignment
     tasks = []
+    
+    # Track which (class, subject) are already added to avoid duplicates from multiple classes in combined assignments
+    handled_class_subjects = set()
+    
+    for staff in req.staff:
+        for asgn in staff.assignments:
+            # Handle backward compatibility: class_name or class_names
+            target_classes = asgn.class_names if asgn.class_names else ([asgn.class_name] if asgn.class_name else [])
+            # Filter to valid classes only
+            target_classes = [c for c in target_classes if c in class_names]
+            
+            if not target_classes:
+                continue
+            
+            # Find the required periods_per_week from the first class in the target list
+            periods_needed = 0
+            for cls_obj in req.classes:
+                if cls_obj.name == target_classes[0]:
+                    for sub in cls_obj.subjects:
+                        if sub.name == asgn.subject_name:
+                            periods_needed = sub.periods_per_week
+                            break
+                    break
+            
+            if periods_needed == 0:
+                continue
+                
+            tasks.append({
+                "class_names": target_classes,
+                "subject_name": asgn.subject_name,
+                "teacher_name": staff.name,
+                "teacher_obj": staff,
+                "remaining": periods_needed
+            })
+            
+            for c in target_classes:
+                handled_class_subjects.add((c, asgn.subject_name))
+
+    # Add any remaining class-subjects that have no staff assigned (as unassigned)
     for cls in req.classes:
         for sub in cls.subjects:
-            # Find staff assigned to this class and subject
-            assigned_staff = [s for s in req.staff for a in s.assignments if a.class_name == cls.name and a.subject_name == sub.name]
-            
-            # If multiple staff are assigned (unlikely but possible), we split periods or just pick one
-            # For simplicity, we assume one staff per (class, subject) or pick the first one found
-            teacher_name = assigned_staff[0].name if assigned_staff else "Unassigned"
-            teacher_obj = assigned_staff[0] if assigned_staff else None
-            
-            tasks.append({
-                "class_name": cls.name,
-                "subject_name": sub.name,
-                "teacher_name": teacher_name,
-                "teacher_obj": teacher_obj,
-                "remaining": sub.periods_per_week
-            })
+            if (cls.name, sub.name) not in handled_class_subjects:
+                tasks.append({
+                    "class_names": [cls.name],
+                    "subject_name": sub.name,
+                    "teacher_name": "Unassigned",
+                    "teacher_obj": None,
+                    "remaining": sub.periods_per_week
+                })
 
     # 2. Assign tasks across the week
-    # Multi-pass approach to spread subjects
     any_placed = True
     while any_placed:
         any_placed = False
@@ -39,40 +69,67 @@ def generate_schedule(req):
             if task["remaining"] <= 0:
                 continue
             
-            # Try to find a day where this subject isn't over-represented yet
-            # (Simple: Find free slot in class and teacher)
             day_indices = list(range(days))
             random.shuffle(day_indices)
             
             placed = False
             for day in day_indices:
-                # Find available periods for this class today
+                # Check teacher days off
+                if task["teacher_obj"] and day in task["teacher_obj"].days_off:
+                    continue
+                
+                # Check Daily Subject Limit (max 2 per day for any class in the task)
+                limit_exceeded = False
+                for c_name in task["class_names"]:
+                    daily_count = sum(1 for p in class_schedule[c_name][day] if p and p["subject"] == task["subject_name"])
+                    if daily_count >= 2:
+                        limit_exceeded = True
+                        break
+                
+                if limit_exceeded:
+                    continue
+                
+                # Find available periods for ALL classes in this task simultaneously
                 period_indices = list(range(num_periods))
                 random.shuffle(period_indices)
                 
                 for p_idx in period_indices:
                     p_conf = req.config.periods[p_idx]
-                    if p_conf.is_break or class_schedule[task["class_name"]][day][p_idx] is not None:
+                    if p_conf.is_break:
                         continue
-                    
+                        
                     # Check Teacher Availability (Constraint: Period limit)
                     if task["teacher_obj"] and task["teacher_obj"].available_until_period:
                         if (p_idx + 1) > task["teacher_obj"].available_until_period:
                             continue
+                            
+                    # Check if ALL target classes are free
+                    classes_free = True
+                    for c_name in task["class_names"]:
+                        if class_schedule[c_name][day][p_idx] is not None:
+                            classes_free = False
+                            break
                     
-                    # Check Teacher Conflict (Double booking)
+                    if not classes_free:
+                        continue
+                    
+                    # Check Teacher Conflict (Double booking in OTHER classes not in this task)
                     teacher_busy = False
                     for other_c in class_names:
+                        if other_c in task["class_names"]:
+                            continue # Ignore classes part of this combined task
                         slot = class_schedule[other_c][day][p_idx]
                         if slot and slot["teacher"] == task["teacher_name"]:
                             teacher_busy = True
                             break
                     
                     if not teacher_busy:
-                        class_schedule[task["class_name"]][day][p_idx] = {
-                            "subject": task["subject_name"],
-                            "teacher": task["teacher_name"]
-                        }
+                        # Place it!
+                        for c_name in task["class_names"]:
+                            class_schedule[c_name][day][p_idx] = {
+                                "subject": task["subject_name"],
+                                "teacher": task["teacher_name"]
+                            }
                         task["remaining"] -= 1
                         placed = True
                         any_placed = True
@@ -89,15 +146,23 @@ def generate_schedule(req):
                         continue
                     
                     # Try to fill with any teacher assigned to this class
-                    available_fillers = [s for s in req.staff for a in s.assignments if a.class_name == cls_name]
+                    available_fillers = []
+                    for s in req.staff:
+                        for asgn in s.assignments:
+                            targets = asgn.class_names if asgn.class_names else ([asgn.class_name] if asgn.class_name else [])
+                            if cls_name in targets:
+                                available_fillers.append((s, asgn.subject_name))
+                                break
+                    
                     random.shuffle(available_fillers)
                     
-                    for filler in available_fillers:
-                        # Check availability constraint
+                    for filler, filler_subject in available_fillers:
+                        if day in filler.days_off:
+                            continue
+                            
                         if filler.available_until_period and (p_idx + 1) > filler.available_until_period:
                             continue
                             
-                        # Check conflict
                         teacher_busy = False
                         for other_c in class_names:
                             slot = class_schedule[other_c][day][p_idx]
@@ -106,10 +171,8 @@ def generate_schedule(req):
                                 break
                         
                         if not teacher_busy:
-                            # Pick one of the subjects this teacher handles for this class
-                            subject_for_filler = [a.subject_name for a in filler.assignments if a.class_name == cls_name][0]
                             class_schedule[cls_name][day][p_idx] = {
-                                "subject": subject_for_filler,
+                                "subject": filler_subject,
                                 "teacher": filler.name
                             }
                             break

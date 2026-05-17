@@ -178,7 +178,18 @@ function addStaffForm(data = null) {
                 ${state.classes.map(c => `<option value="${c.name}" ${data && data.class_teacher_for === c.name ? 'selected' : ''}>${c.name}</option>`).join('')}
             </select>
         </div>
-        <div class="assignments-list space-y-3">
+        <div class="mb-6">
+            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Days Off (Optional)</label>
+            <div class="flex flex-wrap gap-3 staff-days-off">
+                ${['Mon','Tue','Wed','Thu','Fri','Sat'].map((d,i) => `
+                    <label class="inline-flex items-center space-x-1 cursor-pointer">
+                        <input type="checkbox" value="${i}" class="day-off-cb text-indigo-600 rounded border-slate-300 focus:ring-indigo-500" ${data && data.days_off && data.days_off.includes(i) ? 'checked' : ''}>
+                        <span class="text-xs font-bold text-slate-600">${d}</span>
+                    </label>
+                `).join('')}
+            </div>
+        </div>
+        <div class="assignments-list space-y-4">
             <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Assignments</label>
             <!-- Assignments rows -->
         </div>
@@ -200,40 +211,64 @@ function addAssignmentRow(target, data = null) {
     const row = document.createElement('div');
     row.className = "flex items-center space-x-3 animate-fade-in";
     
-    const classOptions = state.classes.map(c => `<option value="${c.name}" ${data && data.class_name === c.name ? 'selected' : ''}>${c.name}</option>`).join('');
+    const classOptions = state.classes.map(c => {
+        const isChecked = data && data.class_names && data.class_names.includes(c.name) ? 'checked' : 
+                          (data && data.class_name === c.name ? 'checked' : '');
+        return `
+            <label class="inline-flex items-center space-x-1 mr-3 mb-2 cursor-pointer bg-white px-2 py-1 rounded-lg border shadow-sm">
+                <input type="checkbox" value="${c.name}" class="asgn-class-cb text-indigo-600 rounded border-slate-300 focus:ring-indigo-500" onchange="updateAssignmentSubjects(this)">
+                <span class="text-xs font-bold text-slate-700">${c.name}</span>
+            </label>
+        `;
+    }).join('');
     
     row.innerHTML = `
-        <select class="asgn-class flex-1 rounded-xl border-2 border-white px-4 py-2 text-xs font-bold focus:border-indigo-500 transition-all shadow-sm" onchange="updateAssignmentSubjects(this)">
-            <option value="">-- Select Class --</option>
-            ${classOptions}
-        </select>
-        <select class="asgn-sub flex-1 rounded-xl border-2 border-white px-4 py-2 text-xs font-bold focus:border-indigo-500 transition-all shadow-sm">
-            <option value="">-- Select Subject --</option>
-        </select>
-        <button onclick="this.parentElement.remove()" class="text-slate-300 hover:text-red-400 transition">&times;</button>
+        <div class="flex-1">
+            <div class="text-[10px] font-bold text-slate-400 uppercase mb-1">Combine Classes</div>
+            <div class="flex flex-wrap items-center">
+                ${classOptions}
+            </div>
+        </div>
+        <div class="flex-1">
+            <div class="text-[10px] font-bold text-slate-400 uppercase mb-1">Subject</div>
+            <select class="asgn-sub w-full rounded-xl border-2 border-white px-4 py-2 text-xs font-bold focus:border-indigo-500 transition-all shadow-sm">
+                <option value="">-- Select Subject --</option>
+            </select>
+        </div>
+        <button onclick="this.parentElement.remove()" class="text-slate-300 hover:text-red-400 transition ml-2 self-end mb-2">&times;</button>
     `;
     list.appendChild(row);
     if (data) {
-        updateAssignmentSubjects(row.querySelector('.asgn-class'), data.subject_name);
+        const firstCb = row.querySelector('.asgn-class-cb');
+        if (firstCb) updateAssignmentSubjects(firstCb, data.subject_name);
     }
 }
 
-function updateAssignmentSubjects(classSelect, selectedSub = null) {
-    const row = classSelect.parentElement;
+function updateAssignmentSubjects(checkboxElem, selectedSub = null) {
+    const row = checkboxElem.closest('.flex.items-center.space-x-3.animate-fade-in');
     const subSelect = row.querySelector('.asgn-sub');
-    const className = classSelect.value;
-    const cls = state.classes.find(c => c.name === className);
+    
+    // Get all selected classes in this row
+    const selectedClasses = Array.from(row.querySelectorAll('.asgn-class-cb:checked')).map(cb => cb.value);
     
     subSelect.innerHTML = '<option value="">-- Select Subject --</option>';
-    if (cls) {
-        cls.subjects.forEach(sub => {
-            const opt = document.createElement('option');
-            opt.value = sub.name;
-            opt.textContent = sub.name;
-            if (selectedSub === sub.name) opt.selected = true;
-            subSelect.appendChild(opt);
-        });
-    }
+    
+    // Collect union of subjects from selected classes
+    const subjectNames = new Set();
+    selectedClasses.forEach(cName => {
+        const cls = state.classes.find(c => c.name === cName);
+        if (cls) {
+            cls.subjects.forEach(sub => subjectNames.add(sub.name));
+        }
+    });
+    
+    subjectNames.forEach(subName => {
+        const opt = document.createElement('option');
+        opt.value = subName;
+        opt.textContent = subName;
+        if (selectedSub === subName) opt.selected = true;
+        subSelect.appendChild(opt);
+    });
 }
 
 function collectStaffData() {
@@ -241,15 +276,16 @@ function collectStaffData() {
     document.querySelectorAll('.staff-card').forEach(card => {
         const name = card.querySelector('.staff-name').value.trim();
         const avail = parseInt(card.querySelector('.staff-avail').value) || null;
+        const daysOff = Array.from(card.querySelectorAll('.day-off-cb:checked')).map(cb => parseInt(cb.value));
         const ctFor = card.querySelector('.staff-ct-for').value || null;
         const assignments = [];
         card.querySelectorAll('.assignments-list > div').forEach(row => {
-            const cName = row.querySelector('.asgn-class').value;
+            const cNames = Array.from(row.querySelectorAll('.asgn-class-cb:checked')).map(cb => cb.value);
             const sName = row.querySelector('.asgn-sub').value;
-            if (cName && sName) assignments.push({ class_name: cName, subject_name: sName });
+            if (cNames.length > 0 && sName) assignments.push({ class_names: cNames, subject_name: sName });
         });
         if (name && assignments.length > 0) {
-            state.staff.push({ name, assignments, class_teacher_for: ctFor, available_until_period: avail });
+            state.staff.push({ name, assignments, class_teacher_for: ctFor, available_until_period: avail, days_off: daysOff });
         }
     });
 }

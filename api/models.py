@@ -21,7 +21,8 @@ class ClassInput(BaseModel):
     subjects: List[SubjectConfig]
 
 class StaffAssignment(BaseModel):
-    class_name: str
+    class_name: Optional[str] = None
+    class_names: Optional[List[str]] = None
     subject_name: str
 
 class StaffInput(BaseModel):
@@ -29,6 +30,7 @@ class StaffInput(BaseModel):
     assignments: List[StaffAssignment]
     class_teacher_for: Optional[str] = None
     available_until_period: Optional[int] = None # e.g. 6 means not available after period 6
+    days_off: List[int] = []
 
 class ScheduleRequest(BaseModel):
     institution_name: str
